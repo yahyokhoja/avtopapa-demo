@@ -35,8 +35,8 @@ const Footer: React.FC = () => {
             <h3>Мы в соцсетях</h3>
             <div className="social-links">
               <a href="https://vk.com/avtopapa" target="_blank" rel="noopener noreferrer">VK</a>
-              <a href="https://www.instagram.com/avtopapa" target="_blank" rel="noopener noreferrer">Instagram</a>
-              <a href="https://www.facebook.com/avtopapa" target="_blank" rel="noopener noreferrer">Telegram</a>
+              <a href="https://max.ru/avtopapa" target="_blank" rel="noopener noreferrer">Max</a>
+              <a href="https://t.me/avtopapa" target="_blank" rel="noopener noreferrer">Telegram</a>
             </div>
           </div>
         </div>
