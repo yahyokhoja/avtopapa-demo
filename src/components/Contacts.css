@@ -1,0 +1,91 @@
+.contacts {
+  background-color: white;
+  padding: var(--spacing-2xl) 0;
+}
+
+.contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-xl);
+  margin-bottom: 3rem;
+}
+
+.contact-item {
+  background-color: var(--light-color);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius);
+  text-align: center;
+  transition: var(--transition);
+  border-top: 3px solid var(--primary-color);
+}
+
+.contact-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.contact-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.contact-item h3 {
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-md);
+}
+
+.contact-item p {
+  margin: 0;
+  line-height: 1.8;
+}
+
+.contact-item a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.contact-item a:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+
+.map-section {
+  background-color: var(--light-color);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.map-section h3 {
+  margin-bottom: var(--spacing-lg);
+  color: var(--primary-color);
+}
+
+.map-placeholder {
+  background-color: white;
+  padding: 3rem;
+  border-radius: var(--border-radius);
+  border: 2px dashed var(--border-color);
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-placeholder p {
+  margin: var(--spacing-md) 0;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .contacts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-placeholder {
+    min-height: 200px;
+  }
+}
