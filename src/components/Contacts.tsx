@@ -9,6 +9,12 @@ interface Contact {
 }
 
 const Contacts: React.FC = () => {
+  const serviceAddress =
+    'Южная часть промзоны Горелово, 1-й квартал, 11, Санкт-Петербург, 198323';
+  const encodedAddress = encodeURIComponent(serviceAddress);
+  const yandexMapEmbedUrl = `https://yandex.ru/map-widget/v1/?text=${encodedAddress}&z=16`;
+  const yandexRouteUrl = `https://yandex.ru/maps/?text=${encodedAddress}&rtt=auto`;
+
   const contacts: Contact[] = [
     {
       id: 1,
@@ -67,11 +73,24 @@ const Contacts: React.FC = () => {
 
         <div className="map-section">
           <h3>Найти нас на карте</h3>
-          <div className="map-placeholder">
-            {/* You can replace this with an actual map component like Google Maps or Leaflet */}
-            <p>📍 Карта будет добавлена позже</p>
-            <p>Южная часть производственной зоны Горелово 1-й квартал, 11 
-​Южная часть промзоны Горелово, Санкт-Петербург, Ломоносовский муниципальный район​198323</p>
+          <div className="map-card">
+            <iframe
+              className="map-frame"
+              src={yandexMapEmbedUrl}
+              title="Карта автосервиса Avtopapa"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+            <p className="map-address">{serviceAddress}</p>
+            <a
+              className="route-button"
+              href={yandexRouteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Проложить маршрут
+            </a>
           </div>
         </div>
       </div>
