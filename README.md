@@ -171,9 +171,9 @@ CMD ["npm", "start"]
 ## 📞 Поддержка
 
 Для вопросов и предложений свяжитесь через:
-- 📞 Телефон: +7 (999) 123-45-67
-- 📧 Email: info@avtopapa.ru
-- 🌐 VK: https://vk.com/avtopapa
+- 📞 Телефон: +992929281129
+- 📧 Email: yahuokhoja@gmail.com
+- 🌐 https://reactportfolio-blush-kappa.vercel.app/#contact
 
 ## 📄 Лицензия
 
