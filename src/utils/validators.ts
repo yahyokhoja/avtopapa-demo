@@ -2,11 +2,33 @@
 
 export const formatPhoneNumber = (phone: string): string => {
   const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 11) {
-    return `+${cleaned.slice(0, 1)} (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7, 9)}-${cleaned.slice(9)}`;
+  const normalized = cleaned.startsWith('8') ? `7${cleaned.slice(1)}` : cleaned;
+  if (normalized.length >= 11) {
+    return `+7 (${normalized.slice(1, 4)}) ${normalized.slice(4, 7)}-${normalized.slice(7, 9)}-${normalized.slice(9, 11)}`;
   }
-  return phone;
+
+  const base = normalized.startsWith('7') ? normalized.slice(1) : normalized;
+  let formatted = '+7';
+  if (base.length > 0) {
+    formatted += ` (${base.slice(0, 3)}`;
+  }
+  if (base.length >= 3) {
+    formatted += ')';
+  }
+  if (base.length > 3) {
+    formatted += ` ${base.slice(3, 6)}`;
+  }
+  if (base.length > 6) {
+    formatted += `-${base.slice(6, 8)}`;
+  }
+  if (base.length > 8) {
+    formatted += `-${base.slice(8, 10)}`;
+  }
+  return formatted;
 };
+
+export const normalizePhoneNumber = (phone: string): string =>
+  phone.replace(/\D/g, '').replace(/^8/, '7');
 
 export const formatDate = (date: Date): string => {
   return date.toLocaleDateString('ru-RU', {

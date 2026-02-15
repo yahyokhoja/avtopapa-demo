@@ -40,7 +40,21 @@
   font-size: 1rem;
 }
 
+.logout-link {
+  color: white;
+  text-decoration: none;
+  transition: var(--transition);
+  font-weight: 500;
+  font-size: 1rem;
+  background: none;
+  padding: 0;
+}
+
 .nav-links a:hover {
+  color: var(--secondary-color);
+}
+
+.logout-link:hover {
   color: var(--secondary-color);
 }
 

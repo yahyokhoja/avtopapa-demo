@@ -3,12 +3,69 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#1a73e8" />
     <meta
       name="description"
-      content="Автопапа - профессиональный автосервис в Санкт-Петербурге. Обслуживание, ремонт и диагностика автомобилей."
+      content="Автопапа: автосервис в Санкт-Петербурге. ТО, ремонт двигателя, подвески, электрики и компьютерная диагностика. Запись онлайн."
     />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Автопапа - Автосервис в Санкт-Петербурге" />
+    <meta property="og:description" content="ТО, диагностика, кузовной ремонт и электрика. Прозрачные цены и гарантия на работы." />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="Автопапа" />
+    <meta property="og:url" content="https://avtopapa.ru" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://avtopapa.ru" />
     <title>Автопапа - Автосервис в Санкт-Петербурге</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "AutoRepair",
+        "name": "Автопапа",
+        "url": "https://avtopapa.ru",
+        "telephone": "+7-921-402-83-03",
+        "email": "info@avtopapa.ru",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Южная часть промзоны Горелово, 1-й квартал, 11",
+          "addressLocality": "Санкт-Петербург",
+          "postalCode": "198323",
+          "addressCountry": "RU"
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "opens": "09:00",
+            "closes": "19:00"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": "Sunday",
+            "opens": "10:00",
+            "closes": "18:00"
+          }
+        ]
+      }
+    </script>
+    <script type="text/javascript">
+      var metrikaId = Number('%REACT_APP_YANDEX_METRIKA_ID%');
+      if (!Number.isNaN(metrikaId) && metrikaId > 0) {
+        (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
+        ym(metrikaId, 'init', {
+          clickmap:true,
+          trackLinks:true,
+          accurateTrackBounce:true
+        });
+      }
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/%REACT_APP_YANDEX_METRIKA_ID%" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <style>
       * {
         margin: 0;

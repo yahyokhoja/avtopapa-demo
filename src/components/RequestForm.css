@@ -75,6 +75,26 @@
   animation: slideDown 0.3s ease-out;
 }
 
+.error-message {
+  background-color: var(--danger-color);
+  color: white;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+  font-weight: 600;
+}
+
+.field-error {
+  margin-top: 0.35rem;
+  color: var(--danger-color);
+  font-size: 0.84rem;
+}
+
+.form-group [aria-invalid='true'] {
+  border-color: var(--danger-color);
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -92,6 +112,12 @@
   font-weight: 600;
   width: 100%;
   margin-top: var(--spacing-lg);
+}
+
+.btn-large:disabled {
+  opacity: 0.75;
+  transform: none;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

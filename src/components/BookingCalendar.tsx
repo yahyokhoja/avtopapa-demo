@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '../utils/analytics';
+import { useAuth } from '../context/AuthContext';
+import { usePortalData } from '../context/PortalDataContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import './BookingCalendar.css';
 
 const BookingCalendar: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { createBooking, getBusySlotsByDate } = usePortalData();
+  const { siteContent } = useSiteContent();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [message, setMessage] = useState('');
 
-  const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-    '17:00', '17:30', '18:00'
-  ];
+  const timeSlots = siteContent.booking.timeSlots.length > 0
+    ? siteContent.booking.timeSlots
+    : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
 
   const getAvailableDates = () => {
-    const dates = [];
+    const dates: Date[] = [];
     const today = new Date();
-    for (let i = 1; i <= 30; i++) {
+    for (let i = 0; i <= 30; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
       dates.push(date);
@@ -22,10 +30,57 @@ const BookingCalendar: React.FC = () => {
     return dates;
   };
 
+  const getAvailableTimeSlots = () => {
+    if (!selectedDate) {
+      return timeSlots;
+    }
+    const busySlots = getBusySlotsByDate(selectedDate);
+    const today = new Date();
+    const currentDateIso = today.toISOString().split('T')[0];
+    if (selectedDate !== currentDateIso) {
+      return timeSlots.filter((slot) => !busySlots.includes(slot));
+    }
+
+    const minutesNow = today.getHours() * 60 + today.getMinutes();
+    const freeSlots = timeSlots.filter((slot) => {
+      const [hours, minutes] = slot.split(':').map(Number);
+      return hours * 60 + minutes > minutesNow + 30;
+    });
+    return freeSlots.filter((slot) => !busySlots.includes(slot));
+  };
+
   const handleBooking = (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage('');
+
+    if (!user) {
+      setMessage(siteContent.booking.needAuthText);
+      navigate('/auth');
+      return;
+    }
+
     if (selectedDate && selectedTime) {
-      alert(`Запись подтверждена на ${selectedDate} в ${selectedTime}`);
+      const result = createBooking({
+        userId: user.id,
+        userName: user.name,
+        userPhone: user.phone,
+        userEmail: user.email,
+        carBrand: '-',
+        carModel: '-',
+        year: '-',
+        problem: 'Запись через календарь',
+        date: selectedDate,
+        time: selectedTime
+      });
+
+      if (!result.ok) {
+        setMessage(result.error || 'Не удалось создать запись');
+        return;
+      }
+
+      const readableDate = new Date(selectedDate).toLocaleDateString('ru-RU');
+      setMessage(`Запись подтверждена на ${readableDate} в ${selectedTime}.`);
+      trackEvent('booking_slot_selected', { date: selectedDate, time: selectedTime });
       setSelectedDate('');
       setSelectedTime('');
     }
@@ -35,23 +90,27 @@ const BookingCalendar: React.FC = () => {
     <section className="booking-calendar" id="booking">
       <div className="container">
         <div className="section-header">
-          <h2>Запись на обслуживание</h2>
-          <p>Выберите удобную дату и время</p>
+          <h2>{siteContent.booking.title}</h2>
+          <p>{siteContent.booking.subtitle}</p>
         </div>
 
         <div className="booking-content">
           <form onSubmit={handleBooking} className="booking-form">
+            {message && <p>{message}</p>}
             <div className="form-group">
-              <label htmlFor="date">Выберите дату:</label>
+              <label htmlFor="date">{siteContent.booking.dateLabel}</label>
               <select
                 id="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setSelectedTime('');
+                }}
                 required
               >
                 <option value="">-- Выберите дату --</option>
                 {getAvailableDates().map(date => (
-                  <option key={date.toISOString()} value={date.toLocaleDateString('ru-RU')}>
+                  <option key={date.toISOString()} value={date.toISOString().split('T')[0]}>
                     {date.toLocaleDateString('ru-RU', { 
                       weekday: 'long', 
                       year: 'numeric', 
@@ -64,7 +123,7 @@ const BookingCalendar: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="time">Выберите время:</label>
+              <label htmlFor="time">{siteContent.booking.timeLabel}</label>
               <select
                 id="time"
                 value={selectedTime}
@@ -72,23 +131,21 @@ const BookingCalendar: React.FC = () => {
                 required
               >
                 <option value="">-- Выберите время --</option>
-                {timeSlots.map(time => (
+                {getAvailableTimeSlots().map(time => (
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
             </div>
 
-            <button type="submit" className="btn btn-secondary">Подтвердить запись</button>
+            <button type="submit" className="btn btn-secondary">{siteContent.booking.submitText}</button>
           </form>
 
           <div className="booking-benefits">
-            <h3>Преимущества записи через сайт</h3>
+            <h3>{siteContent.booking.benefitsTitle}</h3>
             <ul>
-              <li>✓ Быстрая и удобная запись</li>
-              <li>✓ Нет очередей</li>
-              <li>✓ Гарантированное время</li>
-              <li>✓ Напоминание по SMS</li>
-              <li>✓ Скидка 10% на первое посещение</li>
+              {siteContent.booking.benefits.map((benefit) => (
+                <li key={benefit}>✓ {benefit}</li>
+              ))}
             </ul>
           </div>
         </div>

@@ -1,53 +1,63 @@
 import React from 'react';
+import { trackEvent } from '../utils/analytics';
+import { useSiteContent } from '../context/SiteContentContext';
 import './Contacts.css';
 
 interface Contact {
   id: number;
   icon: string;
   title: string;
-  content: string | JSX.Element;
+  content: React.ReactNode;
 }
 
 const Contacts: React.FC = () => {
-  const serviceAddress =
-    'Южная часть промзоны Горелово, 1-й квартал, 11, Санкт-Петербург, 198323';
-  const encodedAddress = encodeURIComponent(serviceAddress);
+  const { siteContent } = useSiteContent();
+  const serviceAddress = siteContent.contacts.mapAddress;
+  const encodedAddress = encodeURIComponent(siteContent.contacts.mapQueryAddress);
   const yandexMapEmbedUrl = `https://yandex.ru/map-widget/v1/?text=${encodedAddress}&z=16`;
   const yandexRouteUrl = `https://yandex.ru/maps/?text=${encodedAddress}&rtt=auto`;
+  const phoneToHref = (value: string) => `tel:${value.replace(/[^\d+]/g, '')}`;
 
   const contacts: Contact[] = [
     {
       id: 1,
       icon: '📍',
-      title: 'Адрес',
-      content: '​Южная часть производственной зоны Горелово 1-й квартал, 1 этаж'
+      title: siteContent.contacts.addressTitle,
+      content: siteContent.contacts.addressText
     },
     {
       id: 2,
       icon: '📞',
-      title: 'Телефон',
+      title: siteContent.contacts.phoneTitle,
       content: (
         <>
-          <a href="tel:+79991234567">+7 (931) 102‒22‒22</a>
-          <br />
-          <a href="tel:+79214028303">+7 (921) 402-83-03</a>
+          {siteContent.contacts.phones.map((phone, index) => (
+            <React.Fragment key={phone}>
+              <a href={phoneToHref(phone)} onClick={() => trackEvent('phone_click', { source: 'contacts' })}>{phone}</a>
+              {index < siteContent.contacts.phones.length - 1 && <br />}
+            </React.Fragment>
+          ))}
         </>
       )
     },
     {
       id: 3,
       icon: '✉️',
-      title: 'Email',
-      content: <a href="mailto:info@avtopapa.ru">info@avtopapa.ru</a>
+      title: siteContent.contacts.emailTitle,
+      content: <a href={`mailto:${siteContent.contacts.email}`} onClick={() => trackEvent('email_click', { source: 'contacts' })}>{siteContent.contacts.email}</a>
     },
     {
       id: 4,
       icon: '⏰',
-      title: 'Время работы',
+      title: siteContent.contacts.workHoursTitle,
       content: (
         <>
-          пн-сб: 09:00 - 19:00<br />
-          вс: 10:00 - 18:00
+          {siteContent.contacts.workHoursLines.map((line, index) => (
+            <React.Fragment key={line}>
+              {line}
+              {index < siteContent.contacts.workHoursLines.length - 1 && <br />}
+            </React.Fragment>
+          ))}
         </>
       )
     }
@@ -57,8 +67,8 @@ const Contacts: React.FC = () => {
     <section className="contacts" id="contacts">
       <div className="container">
         <div className="section-header">
-          <h2>Контактная информация</h2>
-          <p>Мы всегда рады помочь вам</p>
+          <h2>{siteContent.contacts.title}</h2>
+          <p>{siteContent.contacts.subtitle}</p>
         </div>
 
         <div className="contacts-grid">
@@ -72,7 +82,7 @@ const Contacts: React.FC = () => {
         </div>
 
         <div className="map-section">
-          <h3>Найти нас на карте</h3>
+          <h3>{siteContent.contacts.mapTitle}</h3>
           <div className="map-card">
             <iframe
               className="map-frame"
@@ -88,8 +98,9 @@ const Contacts: React.FC = () => {
               href={yandexRouteUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('route_click', { provider: 'yandex' })}
             >
-              Проложить маршрут
+              {siteContent.contacts.routeButtonText}
             </a>
           </div>
         </div>
