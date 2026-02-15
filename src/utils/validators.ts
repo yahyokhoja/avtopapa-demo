@@ -53,8 +53,8 @@ export const validateEmail = (email: string): boolean => {
 };
 
 export const validatePhoneNumber = (phone: string): boolean => {
-  const phoneRegex = /^(\+7|8)?[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/;
-  return phoneRegex.test(phone);
+  const normalized = normalizePhoneNumber(phone);
+  return /^7\d{10}$/.test(normalized);
 };
 
 export const validateYear = (year: string): boolean => {

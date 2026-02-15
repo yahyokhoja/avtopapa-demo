@@ -111,11 +111,47 @@
     grid-template-columns: 1fr;
   }
 
+  .contact-item {
+    padding: var(--spacing-lg);
+  }
+
+  .contact-item p {
+    line-height: 1.55;
+  }
+
+  .map-section {
+    padding: 1rem;
+  }
+
   .map-card {
     min-height: 200px;
   }
 
   .map-frame {
     height: 260px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contacts {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .contacts-grid {
+    gap: 0.75rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .contact-item {
+    padding: 0.85rem;
+  }
+
+  .contact-icon {
+    font-size: 2rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .map-frame {
+    height: 220px;
   }
 }

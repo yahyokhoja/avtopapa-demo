@@ -45,3 +45,27 @@
 .testimonial-card p {
   margin: 0;
 }
+
+@media (max-width: 480px) {
+  .testimonials {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .testimonials-grid {
+    gap: 0.75rem;
+  }
+
+  .testimonial-card {
+    padding: 0.85rem;
+  }
+
+  .testimonial-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .testimonial-rating {
+    font-size: 0.9rem;
+  }
+}

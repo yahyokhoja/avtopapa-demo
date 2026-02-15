@@ -11,7 +11,6 @@ import './App.css';
 
 const Services = lazy(() => import('./components/Services'));
 const BookingCalendar = lazy(() => import('./components/BookingCalendar'));
-const RequestForm = lazy(() => import('./components/RequestForm'));
 const VKWidget = lazy(() => import('./components/VKWidget'));
 const Testimonials = lazy(() => import('./components/Testimonials'));
 const TrustSection = lazy(() => import('./components/TrustSection'));
@@ -25,7 +24,6 @@ const HomePage: React.FC = () => (
       <Services />
       <Testimonials />
       <BookingCalendar />
-      <RequestForm />
       <VKWidget />
       <Contacts />
     </Suspense>

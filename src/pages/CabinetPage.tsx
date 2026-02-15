@@ -2,11 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePortalData } from '../context/PortalDataContext';
+import { useSiteContent } from '../context/SiteContentContext';
+import { Booking } from '../types';
 import './PortalPages.css';
 
 const CabinetPage: React.FC = () => {
   const { user, isReady, updateUser, changeOwnPassword } = useAuth();
-  const { bookings, createReview } = usePortalData();
+  const { bookings, createReview, updateBooking, deleteBooking } = usePortalData();
+  const { siteContent } = useSiteContent();
 
   const [profileMsg, setProfileMsg] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
@@ -28,6 +31,13 @@ const CabinetPage: React.FC = () => {
     rating: 5,
     text: ''
   });
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [editingBooking, setEditingBooking] = useState<{
+    date: string;
+    time: string;
+    carModel: string;
+    problem: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -110,6 +120,55 @@ const CabinetPage: React.FC = () => {
 
     setReviewForm({ car: '', rating: 5, text: '' });
     setProfileMsg('Отзыв добавлен');
+  };
+
+  const bookingTimeSlots = siteContent.booking.timeSlots.length > 0
+    ? siteContent.booking.timeSlots
+    : ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+
+  const startEditingBooking = (booking: Booking) => {
+    setEditingBookingId(booking.id);
+    setEditingBooking({
+      date: booking.date,
+      time: booking.time,
+      carModel: booking.carModel,
+      problem: booking.problem
+    });
+    setError('');
+    setProfileMsg('');
+  };
+
+  const saveBookingChanges = () => {
+    if (!editingBookingId || !editingBooking) {
+      return;
+    }
+    const result = updateBooking(editingBookingId, {
+      date: editingBooking.date,
+      time: editingBooking.time,
+      carModel: editingBooking.carModel.trim() || '-',
+      problem: editingBooking.problem.trim()
+    });
+    if (!result.ok) {
+      setError(result.error || 'Не удалось обновить заказ');
+      return;
+    }
+    setProfileMsg('Заказ обновлен');
+    setEditingBookingId(null);
+    setEditingBooking(null);
+  };
+
+  const removeBooking = (bookingId: string) => {
+    const confirmed = window.confirm('Удалить этот заказ? Действие нельзя отменить.');
+    if (!confirmed) {
+      return;
+    }
+    deleteBooking(bookingId);
+    if (editingBookingId === bookingId) {
+      setEditingBookingId(null);
+      setEditingBooking(null);
+    }
+    setProfileMsg('Заказ удален');
+    setError('');
   };
 
   return (
@@ -225,25 +284,102 @@ const CabinetPage: React.FC = () => {
           {myBookings.length === 0 ? (
             <p>Пока нет заказов. Создайте запись через форму на главной странице.</p>
           ) : (
-            <table className="portal-table">
+            <table className="portal-table portal-table-cards">
               <thead>
                 <tr>
                   <th>Дата</th>
                   <th>Время</th>
-                  <th>Авто</th>
-                  <th>Проблема</th>
+                  <th>Имя</th>
+                  <th>Телефон</th>
+                  <th>Модель авто</th>
+                  <th>Причина обращения</th>
                   <th>Статус</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {myBookings.map((booking) => (
                   <tr key={booking.id}>
-                    <td>{booking.date}</td>
-                    <td>{booking.time}</td>
-                    <td>{`${booking.carBrand} ${booking.carModel}`.trim()}</td>
-                    <td>{booking.problem}</td>
-                    <td>
+                    <td data-label="Дата">
+                      {editingBookingId === booking.id && editingBooking ? (
+                        <input
+                          type="date"
+                          value={editingBooking.date}
+                          onChange={(e) => setEditingBooking((prev) => (prev ? { ...prev, date: e.target.value } : prev))}
+                        />
+                      ) : (
+                        booking.date
+                      )}
+                    </td>
+                    <td data-label="Время">
+                      {editingBookingId === booking.id && editingBooking ? (
+                        <select
+                          value={editingBooking.time}
+                          onChange={(e) => setEditingBooking((prev) => (prev ? { ...prev, time: e.target.value } : prev))}
+                        >
+                          {bookingTimeSlots.map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        booking.time
+                      )}
+                    </td>
+                    <td data-label="Имя">{booking.userName}</td>
+                    <td data-label="Телефон">{booking.userPhone}</td>
+                    <td data-label="Модель авто">
+                      {editingBookingId === booking.id && editingBooking ? (
+                        <input
+                          value={editingBooking.carModel}
+                          onChange={(e) => setEditingBooking((prev) => (prev ? { ...prev, carModel: e.target.value } : prev))}
+                        />
+                      ) : (
+                        booking.carModel
+                      )}
+                    </td>
+                    <td data-label="Причина обращения">
+                      {editingBookingId === booking.id && editingBooking ? (
+                        <textarea
+                          rows={2}
+                          value={editingBooking.problem}
+                          onChange={(e) => setEditingBooking((prev) => (prev ? { ...prev, problem: e.target.value } : prev))}
+                        />
+                      ) : (
+                        booking.problem
+                      )}
+                    </td>
+                    <td data-label="Статус">
                       <span className="portal-badge">{booking.status}</span>
+                    </td>
+                    <td data-label="Действия">
+                      <div className="portal-actions">
+                        {editingBookingId === booking.id ? (
+                          <>
+                            <button type="button" className="btn btn-outline" onClick={saveBookingChanges}>
+                              Сохранить
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => {
+                                setEditingBookingId(null);
+                                setEditingBooking(null);
+                              }}
+                            >
+                              Отмена
+                            </button>
+                          </>
+                        ) : (
+                          <button type="button" className="btn btn-outline" onClick={() => startEditingBooking(booking)}>
+                            Редактировать
+                          </button>
+                        )}
+                        <button type="button" className="btn btn-secondary" onClick={() => removeBooking(booking.id)}>
+                          Удалить
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

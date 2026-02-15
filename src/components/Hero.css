@@ -70,3 +70,29 @@
     top: -30%;
   }
 }
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 2.2rem 0.9rem;
+  }
+
+  .hero::before {
+    width: 220px;
+    height: 220px;
+    right: -28%;
+    top: -20%;
+    opacity: 0.7;
+  }
+
+  .hero-content h1 {
+    margin-bottom: 0.7rem;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 0.45rem;
+  }
+
+  .hero-description {
+    margin-bottom: 0.8rem;
+  }
+}

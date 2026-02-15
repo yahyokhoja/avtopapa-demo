@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePortalData } from '../context/PortalDataContext';
@@ -9,10 +9,39 @@ import './PortalPages.css';
 type Tab = 'orders' | 'calendar' | 'users' | 'reviews' | 'superuser' | 'content';
 
 const statusOptions: Booking['status'][] = ['new', 'in_progress', 'done', 'cancelled'];
+const defaultTimeSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
+
+const toIsoDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+const startOfWeekMonday = (date: Date) => {
+  const value = new Date(date);
+  const day = value.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  value.setDate(value.getDate() + diff);
+  value.setHours(0, 0, 0, 0);
+  return value;
+};
+const addDays = (date: Date, days: number) => {
+  const value = new Date(date);
+  value.setDate(value.getDate() + days);
+  return value;
+};
+const formatRuDate = (isoDate: string) => {
+  const date = new Date(`${isoDate}T00:00:00`);
+  return date.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: '2-digit' });
+};
+const isPastSlot = (date: string, time: string) => {
+  const slot = new Date(`${date}T${time}:00`);
+  return slot.getTime() <= Date.now();
+};
 
 const AdminPage: React.FC = () => {
   const { user, isReady, isAdmin, users, updateUser, resetUserPassword, createSuperUser } = useAuth();
-  const { bookings, reviews, updateBookingStatus, updateReview, deleteReview, createReview } = usePortalData();
+  const { bookings, reviews, createBooking, updateBooking, deleteBooking, updateReview, deleteReview, createReview } = usePortalData();
   const { siteContent, updateSiteContentFromJson, resetSiteContentToDefault } = useSiteContent();
 
   const [tab, setTab] = useState<Tab>('orders');
@@ -21,6 +50,12 @@ const AdminPage: React.FC = () => {
 
   const [editedUsers, setEditedUsers] = useState<Record<string, Pick<User, 'name' | 'phone' | 'email' | 'role'>>>({});
   const [newPassword, setNewPassword] = useState<Record<string, string>>({});
+  const [editedBookings, setEditedBookings] = useState<
+    Record<
+      string,
+      Pick<Booking, 'date' | 'time' | 'userName' | 'userPhone' | 'userEmail' | 'carBrand' | 'carModel' | 'problem' | 'status'>
+    >
+  >({});
 
   const [editedReviews, setEditedReviews] = useState<Record<string, Pick<Review, 'car' | 'rating' | 'text'>>>({});
   const [newReview, setNewReview] = useState({ userName: '', car: '', rating: 5, text: '' });
@@ -32,26 +67,54 @@ const AdminPage: React.FC = () => {
     password: ''
   });
   const [contentJson, setContentJson] = useState(JSON.stringify(siteContent, null, 2));
+  const [weekStartIso, setWeekStartIso] = useState(toIsoDate(startOfWeekMonday(new Date())));
+  const [calendarMode, setCalendarMode] = useState<'create' | 'view' | 'edit'>('create');
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [calendarForm, setCalendarForm] = useState({
+    userId: '',
+    userName: '',
+    userPhone: '',
+    userEmail: '',
+    carBrand: '',
+    carModel: '',
+    year: '',
+    problem: '',
+    date: toIsoDate(new Date()),
+    time: defaultTimeSlots[0] || '09:00',
+    status: 'new' as Booking['status']
+  });
+  const calendarDetailsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setContentJson(JSON.stringify(siteContent, null, 2));
   }, [siteContent]);
 
-  const busyCalendar = useMemo(() => {
-    const map: Record<string, string[]> = {};
-    bookings
-      .filter((item) => item.status !== 'cancelled')
-      .forEach((item) => {
-        if (!map[item.date]) {
-          map[item.date] = [];
-        }
-        map[item.date].push(item.time);
-      });
+  const bookingTimeSlots = siteContent.booking.timeSlots.length > 0 ? siteContent.booking.timeSlots : defaultTimeSlots;
+  const todayIso = toIsoDate(new Date());
+  const weekDates = useMemo(() => {
+    const start = new Date(`${weekStartIso}T00:00:00`);
+    return Array.from({ length: 7 }, (_, index) => toIsoDate(addDays(start, index)));
+  }, [weekStartIso]);
 
-    return Object.entries(map)
-      .map(([date, times]) => ({ date, times: times.sort((a, b) => a.localeCompare(b)) }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+  const bookingBySlot = useMemo(() => {
+    const map: Record<string, Booking> = {};
+    bookings.forEach((item) => {
+      if (item.status === 'cancelled') {
+        return;
+      }
+      map[`${item.date}_${item.time}`] = item;
+    });
+    return map;
   }, [bookings]);
+
+  const allBusySlots = useMemo(() => {
+    return bookings
+      .filter((item) => item.status !== 'cancelled')
+      .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+  }, [bookings]);
+
+  const selectedBooking =
+    selectedBookingId ? bookings.find((item) => item.id === selectedBookingId) || null : null;
 
   if (!isReady) {
     return (
@@ -79,6 +142,160 @@ const AdminPage: React.FC = () => {
     } else {
       setError(failedMessage);
       setSuccess('');
+    }
+  };
+
+  const resetCalendarForm = (date?: string, time?: string) => {
+    setCalendarForm({
+      userId: '',
+      userName: '',
+      userPhone: '',
+      userEmail: '',
+      carBrand: '',
+      carModel: '',
+      year: '',
+      problem: '',
+      date: date || toIsoDate(new Date()),
+      time: time || bookingTimeSlots[0] || '09:00',
+      status: 'new'
+    });
+  };
+
+  const openCreateInSlot = (date: string, time: string) => {
+    if (isPastSlot(date, time)) {
+      showResult(false, '', 'Нельзя создать заказ в прошедшее время');
+      return;
+    }
+    setCalendarMode('create');
+    setSelectedBookingId(null);
+    resetCalendarForm(date, time);
+    setSuccess(`Выбран пустой слот ${date} ${time}. Заполните данные для создания заказа.`);
+    setError('');
+    setTimeout(() => calendarDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+
+  const openViewBooking = (booking: Booking) => {
+    setCalendarMode('view');
+    setSelectedBookingId(booking.id);
+    setCalendarForm({
+      userId: booking.userId,
+      userName: booking.userName,
+      userPhone: booking.userPhone,
+      userEmail: booking.userEmail,
+      carBrand: booking.carBrand,
+      carModel: booking.carModel,
+      year: booking.year,
+      problem: booking.problem,
+      date: booking.date,
+      time: booking.time,
+      status: booking.status
+    });
+    setSuccess(`Открыт заказ: ${booking.date} ${booking.time}`);
+    setError('');
+    setTimeout(() => calendarDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
+
+  const startEditingSelectedBooking = () => {
+    if (!selectedBookingId) {
+      showResult(false, '', 'Сначала выберите занятый слот');
+      return;
+    }
+    setCalendarMode('edit');
+  };
+
+  const saveCalendarBooking = () => {
+    if (!calendarForm.userName.trim() || !calendarForm.userPhone.trim() || !calendarForm.problem.trim()) {
+      showResult(false, '', 'Заполните минимум: имя, телефон и проблему');
+      return;
+    }
+
+    if (calendarMode === 'create') {
+      const result = createBooking({
+        userId: calendarForm.userId || 'admin-created',
+        userName: calendarForm.userName.trim(),
+        userPhone: calendarForm.userPhone.trim(),
+        userEmail: calendarForm.userEmail.trim(),
+        carBrand: calendarForm.carBrand.trim() || '-',
+        carModel: calendarForm.carModel.trim() || '-',
+        year: calendarForm.year.trim() || '-',
+        problem: calendarForm.problem.trim(),
+        date: calendarForm.date,
+        time: calendarForm.time,
+        status: calendarForm.status
+      });
+      showResult(Boolean(result.ok), 'Заказ создан', result.error || 'Не удалось создать заказ');
+      if (result.ok) {
+        resetCalendarForm(calendarForm.date, calendarForm.time);
+      }
+      return;
+    }
+
+    if (!selectedBookingId) {
+      showResult(false, '', 'Выберите заказ для редактирования');
+      return;
+    }
+
+    const result = updateBooking(selectedBookingId, {
+      userId: calendarForm.userId || 'admin-created',
+      userName: calendarForm.userName.trim(),
+      userPhone: calendarForm.userPhone.trim(),
+      userEmail: calendarForm.userEmail.trim(),
+      carBrand: calendarForm.carBrand.trim() || '-',
+      carModel: calendarForm.carModel.trim() || '-',
+      year: calendarForm.year.trim() || '-',
+      problem: calendarForm.problem.trim(),
+      date: calendarForm.date,
+      time: calendarForm.time,
+      status: calendarForm.status
+    });
+    showResult(Boolean(result.ok), 'Заказ обновлен', result.error || 'Не удалось обновить заказ');
+  };
+
+  const removeCalendarBooking = () => {
+    if (!selectedBookingId) {
+      showResult(false, '', 'Выберите заказ для удаления');
+      return;
+    }
+    const confirmed = window.confirm('Удалить этот заказ? Действие нельзя отменить.');
+    if (!confirmed) {
+      return;
+    }
+    deleteBooking(selectedBookingId);
+    setCalendarMode('create');
+    setSelectedBookingId(null);
+    resetCalendarForm();
+    setSuccess('Заказ удален');
+    setError('');
+  };
+
+  const applyUserToCalendarForm = (userId: string) => {
+    const selectedUser = users.find((item) => item.id === userId);
+    if (!selectedUser) {
+      setCalendarForm((prev) => ({ ...prev, userId }));
+      return;
+    }
+    setCalendarForm((prev) => ({
+      ...prev,
+      userId,
+      userName: selectedUser.name,
+      userPhone: selectedUser.phone,
+      userEmail: selectedUser.email
+    }));
+  };
+
+  const saveEditedBookingFromTable = (bookingId: string) => {
+    const edited = editedBookings[bookingId];
+    if (!edited) {
+      return;
+    }
+    const result = updateBooking(bookingId, edited);
+    showResult(Boolean(result.ok), 'Заказ обновлен', result.error || 'Ошибка обновления заказа');
+    if (result.ok) {
+      setEditedBookings((prev) => {
+        const copy = { ...prev };
+        delete copy[bookingId];
+        return copy;
+      });
     }
   };
 
@@ -114,35 +331,455 @@ const AdminPage: React.FC = () => {
         {tab === 'orders' && (
           <div className="portal-card">
             <h3>Все заказы</h3>
-            <table className="portal-table">
+            <table className="portal-table portal-table-cards">
               <thead>
                 <tr>
                   <th>Дата</th>
                   <th>Время</th>
                   <th>Пользователь</th>
                   <th>Контакты</th>
-                  <th>Авто</th>
-                  <th>Проблема</th>
+                  <th>Марка</th>
+                  <th>Модель</th>
+                  <th>Причина обращения</th>
                   <th>Статус</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking) => (
-                  <tr key={booking.id}>
-                    <td>{booking.date}</td>
-                    <td>{booking.time}</td>
-                    <td>{booking.userName}</td>
-                    <td>
-                      {booking.userPhone}
-                      <br />
-                      {booking.userEmail}
-                    </td>
-                    <td>{`${booking.carBrand} ${booking.carModel}`.trim()}</td>
-                    <td>{booking.problem}</td>
-                    <td>
+                {bookings.map((booking) => {
+                  const edited = editedBookings[booking.id] || {
+                    date: booking.date,
+                    time: booking.time,
+                    userName: booking.userName,
+                    userPhone: booking.userPhone,
+                    userEmail: booking.userEmail,
+                    carBrand: booking.carBrand,
+                    carModel: booking.carModel,
+                    problem: booking.problem,
+                    status: booking.status
+                  };
+
+                  return (
+                    <tr key={booking.id}>
+                      <td data-label="Дата">
+                        <input
+                          type="date"
+                          value={edited.date}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, date: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Время">
+                        <select
+                          value={edited.time}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, time: e.target.value }
+                            }))
+                          }
+                        >
+                          {bookingTimeSlots.map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td data-label="Пользователь">
+                        <input
+                          value={edited.userName}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, userName: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Контакты">
+                        <input
+                          value={edited.userPhone}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, userPhone: e.target.value }
+                            }))
+                          }
+                        />
+                        <input
+                          value={edited.userEmail}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, userEmail: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Марка">
+                        <input
+                          value={edited.carBrand}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, carBrand: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Модель">
+                        <input
+                          value={edited.carModel}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, carModel: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Причина обращения">
+                        <textarea
+                          rows={2}
+                          value={edited.problem}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, problem: e.target.value }
+                            }))
+                          }
+                        />
+                      </td>
+                      <td data-label="Статус">
+                        <select
+                          value={edited.status}
+                          onChange={(e) =>
+                            setEditedBookings((prev) => ({
+                              ...prev,
+                              [booking.id]: { ...edited, status: e.target.value as Booking['status'] }
+                            }))
+                          }
+                        >
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td data-label="Действия">
+                        <div className="portal-actions">
+                          <button type="button" className="btn btn-outline" onClick={() => saveEditedBookingFromTable(booking.id)}>
+                            Редактировать
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                              const confirmed = window.confirm('Удалить этот заказ? Действие нельзя отменить.');
+                              if (!confirmed) {
+                                return;
+                              }
+                              deleteBooking(booking.id);
+                              setEditedBookings((prev) => {
+                                const copy = { ...prev };
+                                delete copy[booking.id];
+                                return copy;
+                              });
+                              showResult(true, 'Заказ удален', '');
+                            }}
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'calendar' && (
+          <div className="portal-stack">
+            <div className="portal-card">
+              <h3>Календарь занятости (создание, редактирование, перенос)</h3>
+              <div className="portal-actions" style={{ marginBottom: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    const current = new Date(`${weekStartIso}T00:00:00`);
+                    setWeekStartIso(toIsoDate(addDays(current, -7)));
+                  }}
+                >
+                  ← Предыдущая неделя
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setWeekStartIso(toIsoDate(startOfWeekMonday(new Date())))}
+                >
+                  Текущая неделя
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    const current = new Date(`${weekStartIso}T00:00:00`);
+                    setWeekStartIso(toIsoDate(addDays(current, 7)));
+                  }}
+                >
+                  Следующая неделя →
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="portal-table">
+                  <thead>
+                    <tr>
+                      <th>Время</th>
+                      {weekDates.map((date) => (
+                        <th key={date} className={date === todayIso ? 'calendar-today-col' : ''}>
+                          {formatRuDate(date)} {date === todayIso ? '• Сегодня' : ''}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookingTimeSlots.map((time) => (
+                      <tr key={time}>
+                        <td>{time}</td>
+                        {weekDates.map((date) => {
+                          const booking = bookingBySlot[`${date}_${time}`];
+                          const past = isPastSlot(date, time);
+                          return (
+                            <td key={`${date}_${time}`} className={date === todayIso ? 'calendar-today-col' : ''}>
+                              {booking ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline calendar-slot-btn booked"
+                                  onClick={() => openViewBooking(booking)}
+                                >
+                                  <strong>{booking.userName}</strong>
+                                  <br />
+                                  {booking.carBrand} {booking.carModel}
+                                  <br />
+                                  <span className="portal-badge">{booking.status}</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline calendar-slot-btn empty"
+                                  onClick={() => openCreateInSlot(date, time)}
+                                  disabled={past}
+                                >
+                                  {past ? '—' : '+'}
+                                </button>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="portal-card">
+              <h3>Все занятые слоты</h3>
+              {allBusySlots.length === 0 ? (
+                <p>Занятых слотов пока нет.</p>
+              ) : (
+                <table className="portal-table portal-table-cards">
+                  <thead>
+                    <tr>
+                      <th>Дата</th>
+                      <th>Время</th>
+                      <th>Клиент</th>
+                      <th>Телефон</th>
+                      <th>Авто</th>
+                      <th>Причина</th>
+                      <th>Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allBusySlots.map((booking) => (
+                      <tr key={`busy-${booking.id}`}>
+                        <td data-label="Дата">{booking.date}</td>
+                        <td data-label="Время">{booking.time}</td>
+                        <td data-label="Клиент">{booking.userName}</td>
+                        <td data-label="Телефон">{booking.userPhone}</td>
+                        <td data-label="Авто">{`${booking.carBrand} ${booking.carModel}`.trim()}</td>
+                        <td data-label="Причина">{booking.problem}</td>
+                        <td data-label="Статус">
+                          <span className="portal-badge">{booking.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="portal-card" ref={calendarDetailsRef}>
+              <h3>
+                {calendarMode === 'create' && 'Добавить заказ в пустой слот'}
+                {calendarMode === 'view' && 'Информация о заказе'}
+                {calendarMode === 'edit' && 'Редактирование и перенос заказа'}
+              </h3>
+              {calendarMode === 'view' && selectedBooking ? (
+                <div className="portal-stack">
+                  <p>
+                    Дата и время: <strong>{selectedBooking.date} {selectedBooking.time}</strong>
+                  </p>
+                  <p>
+                    Клиент: <strong>{selectedBooking.userName}</strong>
+                  </p>
+                  <p>
+                    Телефон: <strong>{selectedBooking.userPhone}</strong>
+                  </p>
+                  <p>
+                    Email: <strong>{selectedBooking.userEmail || '-'}</strong>
+                  </p>
+                  <p>
+                    Авто: <strong>{selectedBooking.carBrand} {selectedBooking.carModel}</strong>
+                  </p>
+                  <p>
+                    Причина: <strong>{selectedBooking.problem}</strong>
+                  </p>
+                  <p>
+                    Статус: <span className="portal-badge">{selectedBooking.status}</span>
+                  </p>
+                  <div className="portal-actions">
+                    <button type="button" className="btn btn-outline" onClick={startEditingSelectedBooking}>
+                      Редактировать заказ
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => {
+                        setCalendarMode('create');
+                        setSelectedBookingId(null);
+                        resetCalendarForm();
+                      }}
+                    >
+                      Новый заказ
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={removeCalendarBooking}>
+                      Удалить заказ
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="portal-form">
+                  <label htmlFor="calendar-user-select">Подставить пользователя</label>
+                  <select
+                    id="calendar-user-select"
+                    value={calendarForm.userId}
+                    onChange={(e) => applyUserToCalendarForm(e.target.value)}
+                  >
+                    <option value="">-- Ввести вручную --</option>
+                    {users.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.email})
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="portal-form-row">
+                    <div>
+                      <label htmlFor="calendar-user-name">Имя</label>
+                      <input
+                        id="calendar-user-name"
+                        value={calendarForm.userName}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, userName: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="calendar-user-phone">Телефон</label>
+                      <input
+                        id="calendar-user-phone"
+                        value={calendarForm.userPhone}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, userPhone: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <label htmlFor="calendar-user-email">Email</label>
+                  <input
+                    id="calendar-user-email"
+                    value={calendarForm.userEmail}
+                    onChange={(e) => setCalendarForm((prev) => ({ ...prev, userEmail: e.target.value }))}
+                  />
+
+                  <div className="portal-form-row">
+                    <div>
+                      <label htmlFor="calendar-date">Дата</label>
+                      <input
+                        id="calendar-date"
+                        type="date"
+                        value={calendarForm.date}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, date: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="calendar-time">Время</label>
                       <select
-                        value={booking.status}
-                        onChange={(e) => updateBookingStatus(booking.id, e.target.value as Booking['status'])}
+                        id="calendar-time"
+                        value={calendarForm.time}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, time: e.target.value }))}
+                      >
+                        {bookingTimeSlots.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="portal-form-row">
+                    <div>
+                      <label htmlFor="calendar-car-brand">Марка авто</label>
+                      <input
+                        id="calendar-car-brand"
+                        value={calendarForm.carBrand}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, carBrand: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="calendar-car-model">Модель</label>
+                      <input
+                        id="calendar-car-model"
+                        value={calendarForm.carModel}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, carModel: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="portal-form-row">
+                    <div>
+                      <label htmlFor="calendar-year">Год</label>
+                      <input
+                        id="calendar-year"
+                        value={calendarForm.year}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, year: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="calendar-status">Статус</label>
+                      <select
+                        id="calendar-status"
+                        value={calendarForm.status}
+                        onChange={(e) => setCalendarForm((prev) => ({ ...prev, status: e.target.value as Booking['status'] }))}
                       >
                         {statusOptions.map((status) => (
                           <option key={status} value={status}>
@@ -150,44 +787,50 @@ const AdminPage: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>
+                  </div>
 
-        {tab === 'calendar' && (
-          <div className="portal-card">
-            <h3>Календарь занятости</h3>
-            {busyCalendar.length === 0 ? (
-              <p>Пока занятых слотов нет.</p>
-            ) : (
-              <table className="portal-table">
-                <thead>
-                  <tr>
-                    <th>Дата</th>
-                    <th>Занятые слоты</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {busyCalendar.map((item) => (
-                    <tr key={item.date}>
-                      <td>{item.date}</td>
-                      <td>{item.times.join(', ')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  <label htmlFor="calendar-problem">Проблема</label>
+                  <textarea
+                    id="calendar-problem"
+                    rows={3}
+                    value={calendarForm.problem}
+                    onChange={(e) => setCalendarForm((prev) => ({ ...prev, problem: e.target.value }))}
+                  />
+
+                  <div className="portal-actions">
+                    <button type="button" className="btn btn-primary" onClick={saveCalendarBooking}>
+                      {calendarMode === 'create' ? 'Создать заказ' : 'Сохранить изменения'}
+                    </button>
+                    {calendarMode === 'edit' && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() => {
+                            setCalendarMode('create');
+                            setSelectedBookingId(null);
+                            resetCalendarForm();
+                          }}
+                        >
+                          Новый заказ
+                        </button>
+                        <button type="button" className="btn btn-secondary" onClick={removeCalendarBooking}>
+                          Удалить заказ
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {tab === 'users' && (
           <div className="portal-card">
             <h3>Редактирование пользователей</h3>
-            <table className="portal-table">
+            <table className="portal-table portal-table-cards">
               <thead>
                 <tr>
                   <th>Имя</th>
@@ -209,7 +852,7 @@ const AdminPage: React.FC = () => {
 
                   return (
                     <tr key={item.id}>
-                      <td>
+                      <td data-label="Имя">
                         <input
                           value={edited.name}
                           onChange={(e) =>
@@ -220,7 +863,7 @@ const AdminPage: React.FC = () => {
                           }
                         />
                       </td>
-                      <td>
+                      <td data-label="Телефон">
                         <input
                           value={edited.phone}
                           onChange={(e) =>
@@ -231,7 +874,7 @@ const AdminPage: React.FC = () => {
                           }
                         />
                       </td>
-                      <td>
+                      <td data-label="Email">
                         <input
                           type="email"
                           value={edited.email}
@@ -243,7 +886,7 @@ const AdminPage: React.FC = () => {
                           }
                         />
                       </td>
-                      <td>
+                      <td data-label="Роль">
                         <select
                           value={edited.role}
                           onChange={(e) =>
@@ -260,7 +903,7 @@ const AdminPage: React.FC = () => {
                           <option value="admin">admin</option>
                         </select>
                       </td>
-                      <td>
+                      <td data-label="Сброс пароля">
                         <input
                           type="password"
                           placeholder="Новый пароль"
@@ -273,7 +916,7 @@ const AdminPage: React.FC = () => {
                           }
                         />
                       </td>
-                      <td>
+                      <td data-label="Действия">
                         <div className="portal-actions">
                           <button
                             className="btn btn-outline"
@@ -376,7 +1019,7 @@ const AdminPage: React.FC = () => {
 
             <div className="portal-card">
               <h3>Редактирование отзывов</h3>
-              <table className="portal-table">
+              <table className="portal-table portal-table-cards">
                 <thead>
                   <tr>
                     <th>Автор</th>
@@ -396,8 +1039,8 @@ const AdminPage: React.FC = () => {
 
                     return (
                       <tr key={item.id}>
-                        <td>{item.userName}</td>
-                        <td>
+                        <td data-label="Автор">{item.userName}</td>
+                        <td data-label="Авто">
                           <input
                             value={edited.car}
                             onChange={(e) =>
@@ -408,7 +1051,7 @@ const AdminPage: React.FC = () => {
                             }
                           />
                         </td>
-                        <td>
+                        <td data-label="Оценка">
                           <select
                             value={edited.rating}
                             onChange={(e) =>
@@ -425,7 +1068,7 @@ const AdminPage: React.FC = () => {
                             ))}
                           </select>
                         </td>
-                        <td>
+                        <td data-label="Текст">
                           <textarea
                             value={edited.text}
                             rows={2}
@@ -437,7 +1080,7 @@ const AdminPage: React.FC = () => {
                             }
                           />
                         </td>
-                        <td>
+                        <td data-label="Действия">
                           <div className="portal-actions">
                             <button
                               className="btn btn-outline"

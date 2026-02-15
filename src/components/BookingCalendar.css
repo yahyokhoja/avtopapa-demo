@@ -5,7 +5,7 @@
 
 .booking-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 3rem;
   align-items: start;
 }
@@ -13,6 +13,11 @@
 .booking-form {
   display: grid;
   gap: var(--spacing-lg);
+}
+
+.booking-form .error-message {
+  color: var(--danger-color);
+  margin: 0;
 }
 
 .form-group {
@@ -36,9 +41,39 @@
   cursor: pointer;
 }
 
+.form-group input,
+.form-group textarea {
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+  background-color: white;
+}
+
 .form-group select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.selected-slot-pill {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-group small {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
 }
 
 .booking-benefits {
@@ -71,6 +106,76 @@
   margin-right: var(--spacing-sm);
 }
 
+.booking-occupancy-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  background: #fff;
+}
+
+.booking-calendar-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.booking-calendar-toolbar .btn {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.booking-day-title {
+  background: #f3f6fb;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.65rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.booking-day-slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.slot-btn {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.42rem 0.38rem;
+  font-size: 0.76rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+}
+
+.slot-btn.free {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.slot-btn.selected {
+  background: #dbeafe;
+  color: #1e3a8a;
+  border-color: #60a5fa;
+}
+
+.slot-btn.busy {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+.slot-btn.past {
+  background: #f5f5f5;
+  color: #7a7a7a;
+}
+
 @media (max-width: 1024px) {
   .booking-content {
     grid-template-columns: 1fr;
@@ -83,7 +188,46 @@
     padding: var(--spacing-xl) 0;
   }
 
+  .booking-content {
+    gap: 1rem;
+  }
+
+  .booking-calendar-toolbar .btn {
+    flex: 1 1 calc(33.333% - 0.5rem);
+    min-width: 98px;
+    padding: 0.45rem 0.35rem;
+    font-size: 0.78rem;
+  }
+
+  .slot-btn {
+    font-size: 0.7rem;
+    min-height: 34px;
+  }
+
+  .booking-benefits {
+    padding: var(--spacing-md);
+  }
+
   .form-group select {
     font-size: 16px; /* Prevents zoom on mobile */
+  }
+
+  .form-group input,
+  .form-group textarea {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-calendar-toolbar {
+    gap: 0.35rem;
+  }
+
+  .booking-calendar-toolbar .btn {
+    flex: 1 1 100%;
+  }
+
+  .booking-day-slots {
+    grid-template-columns: 1fr;
   }
 }

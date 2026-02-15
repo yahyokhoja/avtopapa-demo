@@ -37,6 +37,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
   background-color: #ffffff;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
 }
 
 a:focus-visible,
@@ -61,6 +71,7 @@ p {
   line-height: 1.6;
   margin-bottom: var(--spacing-md);
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
 a {
@@ -153,7 +164,42 @@ section {
     --spacing-2xl: 2rem;
   }
   
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+
   section {
     padding: var(--spacing-xl) 0;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 7vw, 2rem);
+  }
+
+  h2 {
+    font-size: clamp(1.3rem, 5.5vw, 1.7rem);
+  }
+
+  h3 {
+    font-size: clamp(1.05rem, 4.4vw, 1.2rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+
+  .btn {
+    width: 100%;
+    min-height: 42px;
+    padding: 0.72rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }

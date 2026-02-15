@@ -159,11 +159,13 @@ export const createUserEntity = (input: {
   };
 };
 
-export const createBookingEntity = (input: Omit<Booking, 'id' | 'createdAt' | 'status'>): Booking => {
+export const createBookingEntity = (
+  input: Omit<Booking, 'id' | 'createdAt' | 'status'> & { status?: Booking['status'] }
+): Booking => {
   return {
     ...input,
     id: makeId(),
-    status: 'new',
+    status: input.status || 'new',
     createdAt: new Date().toISOString()
   };
 };

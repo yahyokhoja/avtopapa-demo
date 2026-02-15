@@ -25,3 +25,22 @@
 .trust-card p {
   margin: 0;
 }
+
+@media (max-width: 480px) {
+  .trust-section {
+    padding: var(--spacing-xl) 0;
+  }
+
+  .trust-grid {
+    gap: 0.7rem;
+  }
+
+  .trust-card {
+    padding: 0.85rem;
+  }
+
+  .trust-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.45rem;
+  }
+}

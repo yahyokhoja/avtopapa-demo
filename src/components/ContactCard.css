@@ -47,3 +47,23 @@
   color: var(--secondary-color);
   text-decoration: underline;
 }
+
+@media (max-width: 480px) {
+  .contact-card {
+    padding: 0.85rem;
+  }
+
+  .contact-card-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .contact-card-content {
+    line-height: 1.55;
+  }
+}

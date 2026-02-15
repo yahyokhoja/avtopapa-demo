@@ -108,9 +108,10 @@
   }
 
   .nav-links.active {
-    max-height: 400px;
+    max-height: calc(100vh - 64px);
     padding: var(--spacing-lg) 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
   }
 
   .nav-links li {
@@ -138,5 +139,26 @@
 
   .logo {
     font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0.7rem 0;
+  }
+
+  .logo {
+    font-size: 1.05rem;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-links li {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .nav-phone a {
+    margin: 0.55rem 0.85rem;
   }
 }

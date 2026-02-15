@@ -21,6 +21,7 @@ interface CreateBookingPayload {
   problem: string;
   date: string;
   time: string;
+  status?: Booking['status'];
 }
 
 interface CreateReviewPayload {
@@ -35,6 +36,11 @@ interface PortalDataContextValue {
   bookings: Booking[];
   reviews: Review[];
   createBooking: (payload: CreateBookingPayload) => { ok: boolean; error?: string };
+  updateBooking: (
+    bookingId: string,
+    updates: Partial<Omit<Booking, 'id' | 'createdAt'>>
+  ) => { ok: boolean; error?: string };
+  deleteBooking: (bookingId: string) => void;
   updateBookingStatus: (bookingId: string, status: Booking['status']) => void;
   getBusySlotsByDate: (date: string) => string[];
   createReview: (payload: CreateReviewPayload) => { ok: boolean; error?: string };
@@ -48,6 +54,11 @@ export const PortalDataProvider: React.FC<{ children: ReactNode }> = ({ children
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
 
+  const isPastDateTime = (date: string, time: string) => {
+    const slot = new Date(`${date}T${time}:00`);
+    return slot.getTime() <= Date.now();
+  };
+
   useEffect(() => {
     initializeStorage();
     setBookings(getBookings());
@@ -55,6 +66,10 @@ export const PortalDataProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const createBooking: PortalDataContextValue['createBooking'] = (payload) => {
+    if (isPastDateTime(payload.date, payload.time)) {
+      return { ok: false, error: 'Нельзя создать заказ в прошедшее время' };
+    }
+
     const busySlots = bookings
       .filter((item) => item.date === payload.date && item.status !== 'cancelled')
       .map((item) => item.time);
@@ -72,6 +87,54 @@ export const PortalDataProvider: React.FC<{ children: ReactNode }> = ({ children
     setBookings(nextBookings);
     saveBookings(nextBookings);
     return { ok: true };
+  };
+
+  const updateBooking: PortalDataContextValue['updateBooking'] = (bookingId, updates) => {
+    const currentBooking = bookings.find((item) => item.id === bookingId);
+    if (!currentBooking) {
+      return { ok: false, error: 'Заказ не найден' };
+    }
+
+    const nextDate = updates.date ?? currentBooking.date;
+    const nextTime = updates.time ?? currentBooking.time;
+    const nextSlotChanged = nextDate !== currentBooking.date || nextTime !== currentBooking.time;
+
+    if (nextSlotChanged && isPastDateTime(nextDate, nextTime)) {
+      return { ok: false, error: 'Нельзя перенести заказ в прошедшее время' };
+    }
+
+    const hasConflict = bookings.some((item) => {
+      if (item.id === bookingId || item.status === 'cancelled') {
+        return false;
+      }
+      return item.date === nextDate && item.time === nextTime;
+    });
+
+    if (hasConflict) {
+      return { ok: false, error: 'На это время уже есть запись' };
+    }
+
+    const nextBookings = bookings.map((item) => {
+      if (item.id !== bookingId) {
+        return item;
+      }
+      return {
+        ...item,
+        ...updates,
+        date: nextDate,
+        time: nextTime
+      };
+    });
+
+    setBookings(nextBookings);
+    saveBookings(nextBookings);
+    return { ok: true };
+  };
+
+  const deleteBooking: PortalDataContextValue['deleteBooking'] = (bookingId) => {
+    const nextBookings = bookings.filter((item) => item.id !== bookingId);
+    setBookings(nextBookings);
+    saveBookings(nextBookings);
   };
 
   const updateBookingStatus: PortalDataContextValue['updateBookingStatus'] = (bookingId, status) => {
@@ -134,6 +197,8 @@ export const PortalDataProvider: React.FC<{ children: ReactNode }> = ({ children
       bookings,
       reviews,
       createBooking,
+      updateBooking,
+      deleteBooking,
       updateBookingStatus,
       getBusySlotsByDate,
       createReview,
