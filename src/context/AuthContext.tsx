@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { User } from '../types';
 import {
   clearSession,
@@ -171,22 +171,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { ok: true };
   };
 
-  const value = useMemo(
-    () => ({
-      user,
-      isReady,
-      users,
-      isAdmin,
-      login,
-      register,
-      logout,
-      updateUser,
-      resetUserPassword,
-      changeOwnPassword,
-      createSuperUser
-    }),
-    [isAdmin, isReady, user, users]
-  );
+  const value: AuthContextValue = {
+    user,
+    isReady,
+    users,
+    isAdmin,
+    login,
+    register,
+    logout,
+    updateUser,
+    resetUserPassword,
+    changeOwnPassword,
+    createSuperUser
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Booking, Review } from '../types';
 import {
   createBookingEntity,
@@ -192,21 +192,18 @@ export const PortalDataProvider: React.FC<{ children: ReactNode }> = ({ children
     saveReviews(nextReviews);
   };
 
-  const value = useMemo(
-    () => ({
-      bookings,
-      reviews,
-      createBooking,
-      updateBooking,
-      deleteBooking,
-      updateBookingStatus,
-      getBusySlotsByDate,
-      createReview,
-      updateReview,
-      deleteReview
-    }),
-    [bookings, reviews]
-  );
+  const value: PortalDataContextValue = {
+    bookings,
+    reviews,
+    createBooking,
+    updateBooking,
+    deleteBooking,
+    updateBookingStatus,
+    getBusySlotsByDate,
+    createReview,
+    updateReview,
+    deleteReview
+  };
 
   return <PortalDataContext.Provider value={value}>{children}</PortalDataContext.Provider>;
 };

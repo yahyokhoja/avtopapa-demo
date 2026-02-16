@@ -12,6 +12,7 @@ const Header: React.FC = () => {
   const { siteContent } = useSiteContent();
   const isHomePage = location.pathname === '/';
   const phoneHref = `tel:${siteContent.header.phone.replace(/[^\d+]/g, '')}`;
+  const cleanLogoText = siteContent.header.logoText.replace('🚗', '').trim();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -26,7 +27,16 @@ const Header: React.FC = () => {
       <nav className="navbar">
         <div className="container">
           <div className="nav-content">
-            <Link className="logo" to="/" onClick={closeMenu}>{siteContent.header.logoText}</Link>
+            <Link className="logo" to="/" onClick={closeMenu}>
+              <img
+                className="logo-icon"
+                src={`${process.env.PUBLIC_URL || ''}/favicon.png`}
+                alt=""
+                width={28}
+                height={28}
+              />
+              <span>{cleanLogoText}</span>
+            </Link>
             
             <button className="hamburger" onClick={toggleMenu} aria-label="Toggle menu">
               <span></span>

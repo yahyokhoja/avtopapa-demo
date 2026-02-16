@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -45,6 +45,97 @@ const AdminRoute: React.FC = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const storageKey = 'avtopapa_engine_sound_played_v1';
+    const hasPlayed = localStorage.getItem(storageKey) === '1';
+
+    if (hasPlayed) {
+      return;
+    }
+
+    const markAsPlayed = () => {
+      localStorage.setItem(storageKey, '1');
+    };
+
+    const playPognaliVoice = async () => {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        throw new Error('Speech synthesis is not supported');
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const utterance = new SpeechSynthesisUtterance('Погнали!');
+        utterance.lang = 'ru-RU';
+        utterance.rate = 1;
+        utterance.pitch = 1;
+
+        const ruVoice = window.speechSynthesis
+          .getVoices()
+          .find((voice) => voice.lang.toLowerCase().startsWith('ru'));
+        if (ruVoice) {
+          utterance.voice = ruVoice;
+        }
+
+        let settled = false;
+        const timeoutId = window.setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            reject(new Error('Speech playback timed out'));
+          }
+        }, 3000);
+
+        utterance.onend = () => {
+          if (!settled) {
+            settled = true;
+            window.clearTimeout(timeoutId);
+            resolve();
+          }
+        };
+
+        utterance.onerror = () => {
+          if (!settled) {
+            settled = true;
+            window.clearTimeout(timeoutId);
+            reject(new Error('Speech playback failed'));
+          }
+        };
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      });
+    };
+
+    const playIntroSound = async () => {
+      try {
+        await playPognaliVoice();
+        markAsPlayed();
+        window.removeEventListener('pointerdown', onFirstInteraction);
+        window.removeEventListener('keydown', onFirstInteraction);
+        window.removeEventListener('touchstart', onFirstInteraction);
+      } catch {
+        // Browser blocked autoplay with sound; wait for first interaction.
+      }
+    };
+
+    const onFirstInteraction = () => {
+      void playIntroSound();
+    };
+
+    void playIntroSound();
+
+    window.addEventListener('pointerdown', onFirstInteraction, { once: true });
+    window.addEventListener('keydown', onFirstInteraction, { once: true });
+    window.addEventListener('touchstart', onFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', onFirstInteraction);
+      window.removeEventListener('keydown', onFirstInteraction);
+      window.removeEventListener('touchstart', onFirstInteraction);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   return (
     <div className="app">
       <Header />

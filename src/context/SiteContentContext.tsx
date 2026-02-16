@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { DEFAULT_SITE_CONTENT } from '../config/defaultSiteContent';
 import { SiteContent } from '../types/siteContent';
 import { getSiteContent, initializeStorage, resetSiteContent, saveSiteContent } from '../utils/storage';
@@ -40,15 +40,12 @@ export const SiteContentProvider: React.FC<{ children: ReactNode }> = ({ childre
     setSiteContent(DEFAULT_SITE_CONTENT);
   };
 
-  const value = useMemo(
-    () => ({
-      siteContent,
-      updateSiteContent,
-      updateSiteContentFromJson,
-      resetSiteContentToDefault
-    }),
-    [siteContent]
-  );
+  const value: SiteContentContextValue = {
+    siteContent,
+    updateSiteContent,
+    updateSiteContentFromJson,
+    resetSiteContentToDefault
+  };
 
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;
 };
