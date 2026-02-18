@@ -198,5 +198,9 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       { label: 'Max', url: 'https://max.ru/avtopapa', network: 'max' },
       { label: 'Telegram', url: 'https://t.me/avtopapa', network: 'telegram' }
     ]
+  },
+  media: {
+    photos: [],
+    videoUrl: ''
   }
 };

@@ -129,6 +129,38 @@
   color: #475569;
 }
 
+.portal-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.portal-media-card {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.portal-media-preview {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.portal-media-video {
+  width: 100%;
+  max-width: 640px;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 10px;
+  background: #000;
+}
+
 @media (max-width: 768px) {
   .portal-page {
     padding: 1rem 0 1.5rem;

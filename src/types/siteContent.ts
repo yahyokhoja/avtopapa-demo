@@ -113,4 +113,8 @@ export interface SiteContent {
       network: string;
     }>;
   };
+  media: {
+    photos: string[];
+    videoUrl: string;
+  };
 }

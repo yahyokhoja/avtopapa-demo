@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePortalData } from '../context/PortalDataContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { Booking, Review, User } from '../types';
+import { getYouTubeEmbedUrl } from '../utils/media';
 import './PortalPages.css';
 
 type Tab = 'orders' | 'calendar' | 'users' | 'reviews' | 'superuser' | 'content';
@@ -42,7 +43,7 @@ const isPastSlot = (date: string, time: string) => {
 const AdminPage: React.FC = () => {
   const { user, isReady, isAdmin, users, updateUser, resetUserPassword, createSuperUser } = useAuth();
   const { bookings, reviews, createBooking, updateBooking, deleteBooking, updateReview, deleteReview, createReview } = usePortalData();
-  const { siteContent, updateSiteContentFromJson, resetSiteContentToDefault } = useSiteContent();
+  const { siteContent, updateSiteContent, updateSiteContentFromJson, resetSiteContentToDefault } = useSiteContent();
 
   const [tab, setTab] = useState<Tab>('orders');
   const [error, setError] = useState('');
@@ -67,6 +68,8 @@ const AdminPage: React.FC = () => {
     password: ''
   });
   const [contentJson, setContentJson] = useState(JSON.stringify(siteContent, null, 2));
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
+  const [videoUrlInput, setVideoUrlInput] = useState('');
   const [weekStartIso, setWeekStartIso] = useState(toIsoDate(startOfWeekMonday(new Date())));
   const [calendarMode, setCalendarMode] = useState<'create' | 'view' | 'edit'>('create');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -87,9 +90,11 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     setContentJson(JSON.stringify(siteContent, null, 2));
+    setVideoUrlInput(siteContent.media.videoUrl || '');
   }, [siteContent]);
 
   const bookingTimeSlots = siteContent.booking.timeSlots.length > 0 ? siteContent.booking.timeSlots : defaultTimeSlots;
+  const adminYouTubeEmbedUrl = useMemo(() => getYouTubeEmbedUrl(siteContent.media.videoUrl), [siteContent.media.videoUrl]);
   const todayIso = toIsoDate(new Date());
   const weekDates = useMemo(() => {
     const start = new Date(`${weekStartIso}T00:00:00`);
@@ -133,8 +138,6 @@ const AdminPage: React.FC = () => {
   if (!isAdmin) {
     return <Navigate to="/cabinet" replace />;
   }
-  const isSuperUserAccount = user.email === 'superadmin@avtopapa.local';
-
   const showResult = (ok: boolean, okMessage: string, failedMessage: string) => {
     if (ok) {
       setSuccess(okMessage);
@@ -143,6 +146,132 @@ const AdminPage: React.FC = () => {
       setError(failedMessage);
       setSuccess('');
     }
+  };
+
+  const toDataUrl = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error('Не удалось прочитать файл'));
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const addPhotoFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      showResult(false, '', 'Выберите файл изображения (jpg/png/webp)');
+      return;
+    }
+
+    try {
+      const dataUrl = await toDataUrl(file);
+      updateSiteContent({
+        ...siteContent,
+        media: {
+          ...siteContent.media,
+          photos: [...siteContent.media.photos, dataUrl]
+        }
+      });
+      setSuccess('Фото добавлено');
+      setError('');
+    } catch {
+      showResult(false, '', 'Не удалось загрузить фото');
+    }
+  };
+
+  const setVideoFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('video/')) {
+      showResult(false, '', 'Выберите видеофайл (mp4/webm/ogg)');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showResult(false, '', 'Видео больше 4 МБ. Используйте ссылку на видео, а не загрузку файла.');
+      return;
+    }
+
+    try {
+      const dataUrl = await toDataUrl(file);
+      updateSiteContent({
+        ...siteContent,
+        media: {
+          ...siteContent.media,
+          videoUrl: dataUrl
+        }
+      });
+      setSuccess('Видео обновлено');
+      setError('');
+    } catch {
+      showResult(false, '', 'Не удалось загрузить видео');
+    }
+  };
+
+  const addPhotoByUrl = (url: string) => {
+    const cleanUrl = url.trim();
+    if (!cleanUrl) {
+      return;
+    }
+    updateSiteContent({
+      ...siteContent,
+      media: {
+        ...siteContent.media,
+        photos: [...siteContent.media.photos, cleanUrl]
+      }
+    });
+    setSuccess('Фото по ссылке добавлено');
+    setError('');
+  };
+
+  const setVideoByUrl = (url: string) => {
+    updateSiteContent({
+      ...siteContent,
+      media: {
+        ...siteContent.media,
+        videoUrl: url.trim()
+      }
+    });
+    setSuccess('Ссылка на видео обновлена');
+    setError('');
+  };
+
+  const removePhoto = (index: number) => {
+    updateSiteContent({
+      ...siteContent,
+      media: {
+        ...siteContent.media,
+        photos: siteContent.media.photos.filter((_, photoIndex) => photoIndex !== index)
+      }
+    });
+    setSuccess('Фото удалено');
+    setError('');
+  };
+
+  const removeVideo = () => {
+    updateSiteContent({
+      ...siteContent,
+      media: {
+        ...siteContent.media,
+        videoUrl: ''
+      }
+    });
+    setVideoUrlInput('');
+    setSuccess('Видео удалено');
+    setError('');
   };
 
   const resetCalendarForm = (date?: string, time?: string) => {
@@ -321,11 +450,9 @@ const AdminPage: React.FC = () => {
           <button className={tab === 'superuser' ? 'active' : ''} onClick={() => setTab('superuser')}>
             Суперпользователь
           </button>
-          {isSuperUserAccount && (
-            <button className={tab === 'content' ? 'active' : ''} onClick={() => setTab('content')}>
-              Контент сайта
-            </button>
-          )}
+          <button className={tab === 'content' ? 'active' : ''} onClick={() => setTab('content')}>
+            Контент сайта
+          </button>
         </div>
 
         {tab === 'orders' && (
@@ -1159,10 +1286,110 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {tab === 'content' && isSuperUserAccount && (
+        {tab === 'content' && (
           <div className="portal-card">
-            <h3>Редактирование содержимого сайта</h3>
-            <p>Измените JSON и сохраните. Этот раздел доступен суперпользователю для правки всего контента сайта.</p>
+            <h3>Фото и видео на сайте</h3>
+            <p>Добавляйте изображения и видео. Фото появятся в блоке галереи, видео в блоке видеоплеера.</p>
+
+            <div className="portal-stack">
+              <div className="portal-form">
+                <label htmlFor="content-photo-upload">Добавить фото файлом</label>
+                <input id="content-photo-upload" type="file" accept="image/*" onChange={addPhotoFromFile} />
+              </div>
+
+              <div className="portal-form-row">
+                <div>
+                  <label htmlFor="content-photo-url">Добавить фото по ссылке</label>
+                  <input
+                    id="content-photo-url"
+                    placeholder="https://example.com/photo.jpg"
+                    value={photoUrlInput}
+                    onChange={(e) => setPhotoUrlInput(e.target.value)}
+                  />
+                </div>
+                <div style={{ alignSelf: 'end' }}>
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={() => {
+                      addPhotoByUrl(photoUrlInput);
+                      setPhotoUrlInput('');
+                    }}
+                  >
+                    Добавить фото
+                  </button>
+                </div>
+              </div>
+
+              {siteContent.media.photos.length > 0 && (
+                <div className="portal-media-grid">
+                  {siteContent.media.photos.map((photo, index) => (
+                    <article key={`${photo.slice(0, 24)}-${index}`} className="portal-media-card">
+                      <img src={photo} alt={`Фото ${index + 1}`} className="portal-media-preview" />
+                      <button className="btn btn-secondary" type="button" onClick={() => removePhoto(index)}>
+                        Удалить
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <hr style={{ margin: '1rem 0' }} />
+
+            <div className="portal-stack">
+              <div className="portal-form">
+                <label htmlFor="content-video-upload">Загрузить видео файлом (до 4 МБ)</label>
+                <input id="content-video-upload" type="file" accept="video/*" onChange={setVideoFromFile} />
+              </div>
+
+              <div className="portal-form-row">
+                <div>
+                  <label htmlFor="content-video-url">Ссылка на видео</label>
+                  <input
+                    id="content-video-url"
+                    placeholder="https://example.com/video.mp4 или https://youtube.com/watch?v=..."
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                  />
+                </div>
+                <div style={{ alignSelf: 'end' }}>
+                  <button className="btn btn-outline" type="button" onClick={() => setVideoByUrl(videoUrlInput)}>
+                    Сохранить видео
+                  </button>
+                </div>
+              </div>
+
+              {siteContent.media.videoUrl && (
+                <>
+                  {adminYouTubeEmbedUrl ? (
+                    <iframe
+                      className="portal-media-video"
+                      src={adminYouTubeEmbedUrl}
+                      title="Превью видео"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      controls
+                      preload="metadata"
+                      className="portal-media-video"
+                      src={siteContent.media.videoUrl}
+                    />
+                  )}
+                  <button className="btn btn-secondary" type="button" onClick={removeVideo}>
+                    Удалить видео
+                  </button>
+                </>
+              )}
+            </div>
+
+            <hr style={{ margin: '1rem 0' }} />
+
+            <h3>Редактирование JSON контента</h3>
+            <p>Расширенный режим для правки всех текстов сайта.</p>
             <textarea
               value={contentJson}
               onChange={(e) => setContentJson(e.target.value)}

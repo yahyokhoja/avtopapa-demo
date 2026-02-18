@@ -1,0 +1,30 @@
+.video-player {
+  padding: var(--spacing-2xl) 0;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
+}
+
+.video-player-frame {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+  background: #000;
+}
+
+.video-player-frame video {
+  width: 100%;
+  display: block;
+  max-height: 640px;
+}
+
+.video-player-frame iframe {
+  width: 100%;
+  display: block;
+  border: 0;
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 768px) {
+  .video-player {
+    padding: var(--spacing-xl) 0;
+  }
+}

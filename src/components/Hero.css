@@ -53,6 +53,105 @@
   margin-right: auto;
 }
 
+.hero-media-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+.hero-media-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.hero-media-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.hero-media-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.hero-media-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: rgba(10, 20, 40, 0.7);
+}
+
+.hero-media-modal-content {
+  width: min(940px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: var(--spacing-lg);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
+}
+
+.hero-media-close {
+  margin-left: auto;
+  display: block;
+  background: #eef2fa;
+  color: #1e2b45;
+  padding: 0.5rem 0.8rem;
+  font-weight: 600;
+}
+
+.hero-media-video video {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  border-radius: 12px;
+  background: #000;
+}
+
+.hero-media-video iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: var(--spacing-md);
+  border-radius: 12px;
+  border: 0;
+  background: #000;
+}
+
+.hero-media-photo img {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  margin-top: var(--spacing-md);
+}
+
+.hero-media-nav {
+  margin-top: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.hero-media-nav-btn {
+  background: #1a73e8;
+  color: #fff;
+  padding: 0.5rem 0.85rem;
+  font-weight: 600;
+}
+
 .btn-lg {
   padding: 1rem 2.5rem;
   font-size: 1.1rem;
@@ -94,5 +193,24 @@
 
   .hero-description {
     margin-bottom: 0.8rem;
+  }
+
+  .hero-media-actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .hero-media-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-media-modal {
+    padding: 0.75rem;
+  }
+
+  .hero-media-modal-content {
+    padding: 0.75rem;
+    max-height: 94vh;
   }
 }
